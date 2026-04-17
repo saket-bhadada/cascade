@@ -9,7 +9,7 @@ import json
 import numpy as np
 from datetime import datetime, timedelta
 from hub_service import (
-    DelhiHubEnv, Parcel,
+    HubEnvironment, Parcel,
     PRIORITY_HIGH, PRIORITY_BUFFER,
     TIER_NORMAL_MAX, TIER_WARNING_MAX,
 )
@@ -28,7 +28,7 @@ SIM_END   = SIM_START + timedelta(days=DAYS) - timedelta(hours=1)
 HUBS = [
     {
         "id"              : "delhi",
-        "name"            : "Delhi Hub Main",
+        "name"            : "Delhi_Hub_Main",
         "region"          : "North India",
         "starting_cap"    : 40.0,
         "rate_normal"     : 8,
@@ -40,7 +40,7 @@ HUBS = [
     },
     {
         "id"              : "mumbai",
-        "name"            : "Mumbai Port Hub",
+        "name"            : "Mumbai_Port_Hub",
         "region"          : "West India",
         "starting_cap"    : 55.0,
         "rate_normal"     : 12,
@@ -52,7 +52,7 @@ HUBS = [
     },
     {
         "id"              : "bangalore",
-        "name"            : "Bangalore Tech Hub",
+        "name"            : "Bangalore_Tech_Hub",
         "region"          : "South India",
         "starting_cap"    : 30.0,
         "rate_normal"     : 5,
@@ -64,7 +64,7 @@ HUBS = [
     },
     {
         "id"              : "chennai",
-        "name"            : "Chennai South Hub",
+        "name"            : "Chennai_South_Hub",
         "region"          : "South India",
         "starting_cap"    : 45.0,
         "rate_normal"     : 7,
@@ -76,7 +76,7 @@ HUBS = [
     },
     {
         "id"              : "kolkata",
-        "name"            : "Kolkata East Hub",
+        "name"            : "Kolkata_East_Hub",
         "region"          : "East India",
         "starting_cap"    : 50.0,
         "rate_normal"     : 9,
@@ -119,25 +119,65 @@ def dispatch_policy(env, current_time):
 
 # ── Simulate one hub ─────────────────────────────────────────────────────────
 def simulate_hub(hub_cfg):
-    env            = DelhiHubEnv()
-    env.hub_name   = hub_cfg["name"]
+    env            = HubEnvironment(name=hub_cfg["name"])
     env.capacity_pct = hub_cfg["starting_cap"]
 
     current_time   = SIM_START
     parcel_counter = 0
     ticks          = []
+    
+    # Triage Summary Stats
+    triage_rerouted = 0
+    triage_expedited = 0
+
+    # Secondary Hub Mapping (Action A)
+    SECONDARY_HUBS = {
+        "delhi"    : "mumbai",
+        "mumbai"   : "delhi",
+        "bangalore": "chennai",
+        "chennai"  : "bangalore",
+        "kolkata"  : "delhi"
+    }
 
     while current_time <= SIM_END:
         is_surge = hub_cfg["surge_start_day"] <= current_time.day <= hub_cfg["surge_end_day"]
         rate     = hub_cfg["rate_surge"] if is_surge else hub_cfg["rate_normal"]
         n_arrive = int(np.random.poisson(rate))
 
+        # --- Arrivals & Tagging ---
+        incoming_truck = []
         for _ in range(n_arrive):
             priority = np.random.choice([PRIORITY_HIGH, PRIORITY_BUFFER], p=PRIORITY_WEIGHTS)
             p = Parcel(f"{hub_cfg['id'].upper()}-{parcel_counter:07d}", priority, current_time)
-            env.receive_parcel(p, capacity_cost=hub_cfg["capacity_cost"])
+            incoming_truck.append(p)
             parcel_counter += 1
 
+        # --- THE TRIGGER (75% Warning Stage) ---
+        if env.capacity_pct >= 75.0:
+            # Action A: In-Transit Truck Rerouting
+            premium_count = sum(1 for p in incoming_truck if p.is_high_priority)
+            standard_count = len(incoming_truck) - premium_count
+            
+            # If standard ratio > premium ratio → Reroute standard parcels to nearby hub
+            if standard_count > premium_count:
+                target = SECONDARY_HUBS.get(hub_cfg["id"], "Relief_Hub")
+                for p in incoming_truck:
+                    if not p.is_high_priority:
+                        env.reroute_parcel(p, target)
+                        triage_rerouted += 1
+                # Only keep premiums
+                incoming_truck = [p for p in incoming_truck if p.is_high_priority]
+
+            # Action B: In-Hub Inventory Expediting (Loyalty Boost)
+            # Clear 5 standard parcels already in the hub to make room and delight customers
+            cleared = env.expedite_standard(5, capacity_relief=CAPACITY_RELIEF)
+            triage_expedited += cleared
+
+        # Process Arrivals
+        for p in incoming_truck:
+            env.receive_parcel(p, capacity_cost=hub_cfg["capacity_cost"])
+
+        # Normal Dispatch Process
         dispatched_ids   = dispatch_policy(env, current_time)
         dispatched_count = 0
         for pid in dispatched_ids:
@@ -188,7 +228,7 @@ def simulate_hub(hub_cfg):
     if in_crit and ep_ticks:
         _close_episode(critical_episodes, ep_ticks)
 
-    # ── Determine hub-level status tag ──
+    # ── Hub Status ──
     crit_hrs = tier_counts.get("Critical State", 0)
     if crit_hrs == 0:
         status = "STABLE"
@@ -199,12 +239,8 @@ def simulate_hub(hub_cfg):
     else:
         status = "CRITICAL"
 
-    # Downsample ticks for the timeline (max 240 points)
     step = max(1, len(ticks) // 240)
-    ticks_lite = [
-        {k: v for k, v in t.items()}
-        for t in ticks[::step]
-    ]
+    ticks_lite = [t for t in ticks[::step]]
 
     return {
         "id"                   : hub_cfg["id"],
@@ -212,8 +248,12 @@ def simulate_hub(hub_cfg):
         "region"               : hub_cfg["region"],
         "tags"                 : hub_cfg["tags"],
         "status"               : status,
-        "current_tier"         : ticks[-1]["tier"],           # last tick tier
-        "current_capacity_pct" : ticks[-1]["capacity_pct"],   # last tick capacity
+        "triage_metrics"       : {
+            "rerouted_standard" : triage_rerouted,
+            "expedited_early"   : triage_expedited
+        },
+        "current_tier"         : ticks[-1]["tier"],
+        "current_capacity_pct" : ticks[-1]["capacity_pct"],
         "summary": {
             "total_arrived"         : total_arr,
             "total_dispatched"      : total_disp,

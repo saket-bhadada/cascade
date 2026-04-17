@@ -26,13 +26,13 @@ TIER_NORMAL_MAX: float   = 74.99             # 0 – 74 %  → Normal Operations
 TIER_WARNING_MAX: float  = 89.99             # 75 – 89 % → Warning State
 # Anything >= 90 %                            → Critical State
 
-PRIORITY_HIGH    = "High_Priority_SLA"       # Must deliver today
-PRIORITY_BUFFER  = "Standard_Buffer"         # Can be delivered later
+PRIORITY_HIGH    = "Premium_NextDay"         # Next-day delivery (24h)
+PRIORITY_BUFFER  = "Standard_5to7Day"       # Standard delivery (5-7 days)
 
-# SLA windows (hours from arrival)
-SLA_HIGH_HOURS: int   = 24                   # High-Priority due in 24 h
-SLA_BUFFER_MIN: int   = 72                   # Standard Buffer due in 72–96 h
-SLA_BUFFER_MAX: int   = 96
+# SLA windows (hours from arrival/buy)
+SLA_HIGH_HOURS: int   = 24                   # Premium due in 24 h
+SLA_BUFFER_MIN: int   = 120                  # Standard due in 120–168 h (5-7 days)
+SLA_BUFFER_MAX: int   = 168
 
 
 # ---------------------------------------------------------------------------
@@ -89,25 +89,26 @@ class Parcel:
 
 
 # ---------------------------------------------------------------------------
-# Delhi Hub Environment
+# Hub Environment
 # ---------------------------------------------------------------------------
 
-class DelhiHubEnv:
+class HubEnvironment:
     """
-    Simulates the Delhi Hub operational environment.
+    Simulates a Hub operational environment.
 
     Attributes:
+        hub_name      : Name of the hub
         capacity_pct  : Current fill level of the hub (starts at 40 %)
         parcels       : All parcels currently held in the hub
         event_log     : Timestamped record of every state change
     """
 
-    def __init__(self):
-        self.hub_name: str        = HUB_NAME
+    def __init__(self, name: str = "Generic_Hub"):
+        self.hub_name: str        = name
         self.capacity_pct: float  = STARTING_CAPACITY_PCT
         self.parcels: List[Parcel] = []
         self.event_log: List[dict] = []
-        self._log_event("HUB_INIT", f"Hub initialised at {self.capacity_pct:.1f}% capacity.")
+        self._log_event("HUB_INIT", f"Hub '{self.hub_name}' initialised at {self.capacity_pct:.1f}% capacity.")
 
     # ------------------------------------------------------------------
     # Tier Properties
@@ -134,13 +135,9 @@ class DelhiHubEnv:
     # Parcel Operations
     # ------------------------------------------------------------------
 
-    def receive_parcel(self, parcel: Parcel, capacity_cost: float = 0.001) -> None:
+    def receive_parcel(self, parcel: Parcel, capacity_cost: float = 0.15) -> None:
         """
         Accept a parcel into the hub and update capacity.
-
-        Args:
-            parcel        : The incoming Parcel object
-            capacity_cost : % capacity increase per parcel received
         """
         self.parcels.append(parcel)
         self.capacity_pct = min(100.0, self.capacity_pct + capacity_cost)
@@ -150,29 +147,48 @@ class DelhiHubEnv:
             f"Capacity → {self.capacity_pct:.2f}% [{self.tier}]"
         )
 
-    def dispatch_parcel(self, parcel_id: str, capacity_relief: float = 0.001) -> Parcel | None:
+    def reroute_parcel(self, parcel: Parcel, target_hub_name: str) -> None:
+        """
+        Simulate rerouting a parcel before it enters the hub.
+        """
+        self._log_event(
+            "PARCEL_REROUTE",
+            f"Rerouted {parcel.parcel_id} to {target_hub_name} due to capacity triage."
+        )
+
+    def dispatch_parcel(self, parcel_id: str, capacity_relief: float = 0.15) -> Parcel | None:
         """
         Remove a parcel from the hub (dispatch) and reduce capacity.
-
-        Args:
-            parcel_id      : ID of the parcel to dispatch
-            capacity_relief: % capacity freed per parcel dispatched
-
-        Returns:
-            The dispatched Parcel, or None if not found
         """
         for i, p in enumerate(self.parcels):
             if p.parcel_id == parcel_id:
-                self.parcels.pop(i)
+                dispatched = self.parcels.pop(i)
                 self.capacity_pct = max(0.0, self.capacity_pct - capacity_relief)
                 self._log_event(
                     "PARCEL_OUT",
-                    f"Dispatched {parcel_id} [{p.priority}] | "
+                    f"Dispatched {parcel_id} [{dispatched.priority}] | "
                     f"Capacity → {self.capacity_pct:.2f}% [{self.tier}]"
                 )
-                return p
-        self._log_event("PARCEL_NOT_FOUND", f"Parcel {parcel_id} not found in hub.")
+                return dispatched
         return None
+
+    def expedite_standard(self, count: int, capacity_relief: float = 0.15) -> int:
+        """
+        Force-dispatch standard parcels to clear capacity (Action B).
+        Triggers at Warning Stage (75%+) to increase customer loyalty.
+        """
+        expedited = 0
+        ids_to_remove = [p.parcel_id for p in self.parcels if not p.is_high_priority][:count]
+        
+        for pid in ids_to_remove:
+            dispatched = self.dispatch_parcel(pid, capacity_relief)
+            if dispatched:
+                self._log_event(
+                    "LOYALTY_BOOST",
+                    f"Expedited {pid} ({dispatched.priority}) ahead of schedule. Capacity cleared + Customer loyalty boosted."
+                )
+                expedited += 1
+        return expedited
 
     def set_capacity(self, new_pct: float) -> None:
         """Manually override hub capacity (e.g., to simulate surges)."""

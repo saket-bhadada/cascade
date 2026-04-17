@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react'
+import SmartTriage from './SmartTriage'
 import './index.css'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -143,6 +144,28 @@ function HubView({ hub }) {
         </span>
       </div>
 
+      {/* Hub Context / Strategy */}
+      <div className="hub-context">
+        <div className="context-item">
+          <div className="context-label">Operational Profile</div>
+          <div className="context-text">
+            {hub.id === 'mumbai' ? 'International Gateway Hub with extreme morning baseline volumes. Requires strict FIFO for SLAs.' :
+             hub.id === 'delhi' ? 'Central North Hub. High volatility during festival windows. Focus on peak-buffer balancing.' :
+             hub.id === 'bangalore' ? 'Strategic Tech Node. Managed as low-volume / high-precision site with high storage cost.' :
+             hub.id === 'chennai' ? 'Secondary Coastal Hub. Serves as a relief node for Mumbai south-bound traffic.' :
+             'East India Regional Hub. Extended surge windows due to geographic logistics complexity.'}
+          </div>
+        </div>
+        <div className="context-item">
+          <div className="context-label">Optimization Goal</div>
+          <div className="context-text">
+            {hub.status === 'CRITICAL' ? 'EMERGENCY: Maximize dispatch volume to avoid lock-up.' :
+             hub.status === 'WARNING' ? 'ELEVATED: Prioritize High-SLA items over buffer.' :
+             'STABLE: Maintain cost-efficient dispatch cadence.'}
+          </div>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="stats-row">
         <div className="stat-card">
@@ -171,6 +194,16 @@ function HubView({ hub }) {
           <div className="stat-label">Avg Cap</div>
           <div className="stat-value">{s.avg_capacity_pct?.toFixed(1)}%</div>
           <div className="stat-sub">across sim</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Triage: Rerouted</div>
+          <div className="stat-value warn">{hub.triage_metrics?.rerouted_standard ?? 0}</div>
+          <div className="stat-sub">Action A (Trucks)</div>
+        </div>
+        <div className="stat-card">
+          <div className="stat-label">Triage: Expedited</div>
+          <div className="stat-value ok">{hub.triage_metrics?.expedited_early ?? 0}</div>
+          <div className="stat-sub">Action B (In-Hub)</div>
         </div>
         <div className="stat-card">
           <div className="stat-label">Current</div>
@@ -237,9 +270,10 @@ export default function App() {
       {/* Header */}
       <div className="header">
         <div>
-          <div className="header-title">Hub Service Dashboard</div>
+          <div className="header-title">Cascade Multi-Hub Dashboard</div>
           <div className="header-sub">
-            Rule-Based Threshold Policy · 5 hub locations
+            <span className="dataset-badge">DATASET DRIVEN</span>
+            {hubs.length || 5} active hub locations · Rule-Based Threshold Policy
           </div>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
@@ -262,6 +296,11 @@ export default function App() {
       </div>
 
       {error && <div className="error-bar">⚠ {error}</div>}
+
+      {/* Strategic Flow Visualization */}
+      <div className="strategic-section">
+        <SmartTriage hubData={activeHub} allHubs={hubs} />
+      </div>
 
       {/* Empty state */}
       {!data && !loading && (
