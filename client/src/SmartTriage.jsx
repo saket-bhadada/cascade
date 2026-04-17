@@ -9,12 +9,13 @@ const HUB_COORDS = {
   chennai: { x: 480, y: 530, label: "Chennai Coastal" }
 };
 
-const DEFAULT_SECONDARY = {
-  delhi: "mumbai",
-  mumbai: "delhi",
-  bangalore: "chennai",
-  chennai: "bangalore",
-  kolkata: "delhi"
+// Custom Hierarchical Routing Logic
+const FALLBACK_TREE = {
+  delhi: [ ['mumbai', 'kolkata'], ['bangalore', 'chennai'] ],
+  mumbai: [ ['delhi', 'bangalore'], ['chennai', 'kolkata'] ],
+  kolkata: [ ['delhi', 'chennai'], ['mumbai', 'bangalore'] ],
+  bangalore: [ ['chennai', 'mumbai'], ['delhi', 'kolkata'] ],
+  chennai: [ ['bangalore', 'kolkata'], ['mumbai', 'delhi'] ]
 };
 
 const SmartTriage = ({ hubData, allHubs = [] }) => {
@@ -32,7 +33,7 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
           }
           return prev + 1;
         });
-      }, 300); // 300ms per tick
+      }, 300);
     }
     return () => clearInterval(interval);
   }, [isPlaying, hubData]);
@@ -48,7 +49,7 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
 
   const activeId = hubData.id;
   
-  // 1. Gather Live Capacities for ALL checkpoints in one go
+  // 1. Gather Live Capacities for ALL checkpoints
   const liveCaps = {};
   allHubs.forEach(h => {
     liveCaps[h.id] = h.ticks?.[currentTickIndex]?.capacity_pct ?? 0;
@@ -57,27 +58,24 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
   const activeCap = liveCaps[activeId] ?? 0;
   const isWarning = activeCap >= 75.0;
 
-  // 2. Compute Cascading Fallback Routes dynamically!
+  // 2. Compute Custom Cascading Routes
   let cascadePaths = [];
   if (isWarning) {
     let currentSrc = activeId;
     let visited = new Set([activeId]);
     
-    // Allow up to 4 hops to avoid infinite loops across India
-    for (let hop = 0; hop < 4; hop++) {
-      let targetId = DEFAULT_SECONDARY[currentSrc] || "delhi";
+    const treeLayers = FALLBACK_TREE[activeId] || [];
+    
+    for (let hop = 0; hop < treeLayers.length; hop++) {
+      let candidateGroup = treeLayers[hop];
       
-      // If default target is ALSO overloaded (>=75%), or visited, find another route!
-      let targetCap = liveCaps[targetId] ?? 0;
-      if (visited.has(targetId) || targetCap >= 75.0) {
-         const alternative = Object.keys(HUB_COORDS).find(k => !visited.has(k) && (liveCaps[k] ?? 0) < 75.0);
-         if (alternative) {
-           targetId = alternative;
-         } else {
-           // Total gridlock: push to default anyway if not perfectly avoidable
-           if (visited.has(targetId)) break; 
-         }
-      }
+      // Filter out visited
+      let validCandidates = candidateGroup.filter(id => !visited.has(id));
+      if (validCandidates.length === 0) break;
+      
+      // Pick the node with the lowest current capacity to be our route target
+      validCandidates.sort((a,b) => (liveCaps[a]??0) - (liveCaps[b]??0));
+      let targetId = validCandidates[0]; 
       
       const srcPos = HUB_COORDS[currentSrc];
       const tgtPos = HUB_COORDS[targetId];
@@ -87,15 +85,17 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
          to: targetId,
          pathId: `cascade-path-${hop}`,
          d: `M ${srcPos.x} ${srcPos.y} L ${tgtPos.x} ${tgtPos.y}`,
-         isFallback: hop > 0 // if hop > 0, it means it's a chain reaction
+         isFallback: hop > 0
       });
       
-      if ((liveCaps[targetId] ?? 0) < 75.0) {
-         break; // Found a safe warehouse checkpoint!
-      }
-      
       visited.add(targetId);
-      currentSrc = targetId; // keep jumping!
+      currentSrc = targetId; 
+      
+      // If the target we just routed to is safely below 75%, stop chaining!
+      if ((liveCaps[targetId] ?? 0) < 75.0) {
+         break;
+      }
+      // Otherwise, the loop advances to the next layer (e.g. going down to Bangalore/Chennai)
     }
   }
 
@@ -128,6 +128,26 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
       </div>
 
       <div className="map-wrapper" style={{ position: 'relative', height: '600px', background: 'radial-gradient(ellipse at center, #1b2034 0%, #0d0e14 100%)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)', overflow: 'hidden' }}>
+        
+        {/* Global Situation Panel Overlay */}
+        <div style={{ position: 'absolute', top: '20px', right: '20px', zIndex: 10, background: 'rgba(15, 23, 42, 0.85)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.1)', backdropFilter: 'blur(8px)', minWidth: '180px' }}>
+          <h4 style={{ margin: '0 0 12px 0', fontSize: '12px', color: '#8c90a3', textTransform: 'uppercase', letterSpacing: '1px' }}>Global Situation</h4>
+          {Object.entries(HUB_COORDS).map(([id, info]) => {
+            const cap = liveCaps[id] ?? 0;
+            const isWarn = cap >= 75.0;
+            const isCrit = cap >= 90.0;
+            let color = '#22c55e'; // green
+            if (isCrit) color = '#ef4444'; // red
+            else if (isWarn) color = '#f59e0b'; // amber
+            
+            return (
+              <div key={`status-${id}`} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '11px', fontWeight: 'bold' }}>
+                <span style={{ color: id === activeId ? '#fff' : '#8c90a3' }}>{id.toUpperCase()}</span>
+                <span style={{ color }}>{cap.toFixed(1)}%</span>
+              </div>
+            );
+          })}
+        </div>
         
         <svg width="100%" height="100%" style={{ position: 'absolute', top: 0, left: 0, zIndex: 1 }}>
           <g stroke="rgba(255,255,255,0.03)" strokeWidth="1">
@@ -167,7 +187,7 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
                 </text>
               </g>
 
-              {/* Triage Mode: Show standard redirecting trucks cascading! */}
+              {/* Triage Mode: Show cascade paths! */}
               {isWarning ? (
                 <>
                   {cascadePaths.map(route => (
@@ -206,10 +226,8 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
               )}
             </>
           )}
-
         </svg>
 
-        {/* Dynamic Multi-Checkpoint Render rendering ALL Hubs! */}
         {Object.entries(HUB_COORDS).map(([id, pos]) => {
           const cap = liveCaps[id] ?? 0;
           const isActive = id === activeId;
@@ -218,7 +236,7 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
           
           let nodeClass = "map-node";
           if (isActive) nodeClass += " active-hub";
-          else if (cascadePaths.some(p => p.to === id)) nodeClass += " secondary-hub"; // Highlight chain hubs
+          else if (cascadePaths.some(p => p.to === id)) nodeClass += " secondary-hub";
           else nodeClass += " background-hub";
           
           return (
@@ -228,7 +246,6 @@ const SmartTriage = ({ hubData, allHubs = [] }) => {
                  {pos.label}
                </div>
 
-               {/* SHOW CAPACITY FOR ALL CHECKPOINTS */}
                <div className="live-meter-map">
                  <div className="meter" style={{ '--level': `${cap}%`, width: '40px', background: 'rgba(255,255,255,0.05)' }}>
                    <div className="meter-fill" style={{ background: isCriticalStage ? '#ef4444' : isWarningStage ? '#f59e0b' : '#3b82f6' }}></div>
