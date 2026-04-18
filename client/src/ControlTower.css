@@ -1,0 +1,247 @@
+/* ── Control Tower Page ──────────────────────────────── */
+.ct-page {
+  min-height: 100vh;
+  background: linear-gradient(170deg, #0a0e1a 0%, #0d1117 40%, #111827 100%);
+  color: #e2e4f0;
+  font-family: system-ui, -apple-system, sans-serif;
+  padding: 0 24px 40px;
+}
+
+/* ── Navigation Bar ──────────────────────────────────── */
+.ct-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 24px; position: sticky; top: 0; z-index: 50;
+  background: rgba(10,14,26,0.85); backdrop-filter: blur(12px);
+}
+.ct-nav-link {
+  color: #38bdf8; text-decoration: none; font-size: 13px; font-weight: 600;
+  transition: 0.2s;
+}
+.ct-nav-link:hover { color: #7dd3fc; }
+.ct-nav-title { font-size: 18px; font-weight: 800; letter-spacing: 0.5px; color: #38bdf8; }
+.ct-nav-live { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 700; color: #4ade80; letter-spacing: 1px; }
+.ct-live-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: #22c55e;
+  animation: livePulse 1.5s ease infinite;
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
+  50% { box-shadow: 0 0 0 6px rgba(34,197,94,0); }
+}
+
+/* ── Summary Cards Row ───────────────────────────────── */
+.ct-summary-row {
+  display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.ct-summary-card {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 10px; padding: 14px 18px; min-width: 100px; flex: 1;
+}
+.ct-sum-label { font-size: 10px; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 4px; }
+.ct-sum-value { font-size: 22px; font-weight: 900; font-family: monospace; }
+.ct-sum-value.accent { color: #38bdf8; }
+.ct-sum-value.warn { color: #fcd34d; }
+.ct-sum-value.crit { color: #fca5a5; }
+.warn-card { border-left: 3px solid #f59e0b; }
+.crit-card { border-left: 3px solid #ef4444; }
+
+.ct-hub-pressure-card { min-width: 80px; text-align: center; }
+.ct-mini-bar {
+  height: 4px; background: rgba(255,255,255,0.05); border-radius: 2px; margin-top: 6px; overflow: hidden;
+}
+.ct-mini-bar > div { height: 100%; border-radius: 2px; }
+
+/* ── Merchant Score Cards ────────────────────────────── */
+.ct-merchant-cards {
+  display: flex; gap: 14px; flex-wrap: wrap; margin-bottom: 24px;
+}
+.ct-m-card {
+  flex: 1; min-width: 200px; background: rgba(255,255,255,0.02);
+  border: 1px solid rgba(255,255,255,0.05); border-radius: 12px;
+  padding: 16px; border-top: 3px solid transparent;
+}
+.ct-tier-platinum { border-top-color: #22c55e; }
+.ct-tier-gold { border-top-color: #f59e0b; }
+.ct-tier-restricted { border-top-color: #ef4444; }
+
+.ct-m-card-top { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.ct-m-icon { font-size: 28px; }
+.ct-m-name { font-weight: 700; font-size: 13px; }
+.ct-m-id { font-family: monospace; font-size: 10px; color: #64748b; }
+
+.ct-m-mds-row { display: flex; align-items: center; gap: 14px; margin-bottom: 12px; }
+.ct-m-mds-ring { position: relative; width: 65px; height: 65px; flex-shrink: 0; }
+.ct-m-mds-ring svg { width: 100%; height: 100%; }
+.ct-m-mds-num {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 18px; font-weight: 900; font-family: monospace;
+}
+
+.ct-m-stats { display: flex; flex-direction: column; gap: 2px; font-size: 11px; }
+.ct-m-stats small { color: #64748b; margin-right: 4px; }
+.ct-m-stats strong { color: #e2e4f0; }
+.ct-tier-label-platinum { color: #4ade80; }
+.ct-tier-label-gold { color: #fcd34d; }
+.ct-tier-label-restricted { color: #fca5a5; }
+
+.ct-m-sla-access {
+  display: flex; gap: 8px; flex-wrap: wrap;
+}
+.ct-sla-yes {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+  background: rgba(34,197,94,0.1); color: #4ade80; border: 1px solid rgba(34,197,94,0.3);
+}
+.ct-sla-no {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+  background: rgba(239,68,68,0.1); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3);
+}
+.ct-sla-surge {
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 3px;
+  background: rgba(56,189,248,0.1); color: #7dd3fc; border: 1px solid rgba(56,189,248,0.3);
+}
+
+/* ── Controls Bar ────────────────────────────────────── */
+.ct-controls {
+  display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;
+}
+.ct-gen-btn {
+  background: linear-gradient(135deg, #38bdf8, #6366f1); color: white; border: none;
+  padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer;
+  box-shadow: 0 4px 15px rgba(56,189,248,0.3); transition: all 0.2s;
+}
+.ct-gen-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(56,189,248,0.5); }
+
+.ct-auto-btn {
+  background: rgba(255,255,255,0.05); color: #94a3b8; border: 1px solid rgba(255,255,255,0.1);
+  padding: 10px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: 0.2s;
+}
+.ct-auto-btn.active { background: rgba(34,197,94,0.15); color: #4ade80; border-color: #22c55e; }
+
+.ct-clear-btn {
+  background: transparent; color: #64748b; border: 1px solid rgba(255,255,255,0.06);
+  padding: 10px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: 0.2s;
+}
+.ct-clear-btn:hover { color: #fca5a5; border-color: #ef4444; }
+
+/* ── Table ───────────────────────────────────────────── */
+.ct-table-wrap {
+  overflow-x: auto; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+.ct-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.ct-table thead {
+  background: rgba(255,255,255,0.03); position: sticky; top: 0;
+}
+.ct-table th {
+  padding: 12px 14px; text-align: left; font-size: 10px;
+  text-transform: uppercase; letter-spacing: 1px; color: #64748b;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.ct-table td {
+  padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03);
+  vertical-align: middle;
+}
+.ct-row { transition: background 0.2s; }
+.ct-row:hover { background: rgba(255,255,255,0.02); }
+.ct-row-critical { background: rgba(239,68,68,0.04); }
+.ct-row-high { background: rgba(245,158,11,0.03); }
+
+.ct-empty { text-align: center; color: #475569; padding: 40px !important; font-style: italic; }
+
+.ct-shipment-id { font-weight: 700; font-family: monospace; color: #e2e4f0; }
+.ct-shipment-time { font-size: 10px; color: #64748b; }
+
+.ct-merchant-cell { display: flex; align-items: center; gap: 8px; }
+.ct-merchant-icon { font-size: 18px; }
+.ct-merchant-name { font-weight: 600; font-size: 12px; }
+.ct-merchant-id { font-family: monospace; font-size: 9px; color: #64748b; }
+
+/* MDS mini bar */
+.ct-mds-mini { display: flex; align-items: center; gap: 6px; }
+.ct-mds-bar-bg { width: 50px; height: 6px; background: rgba(255,255,255,0.05); border-radius: 3px; overflow: hidden; }
+.ct-mds-bar-fill { height: 100%; border-radius: 3px; transition: width 0.3s; }
+.ct-mds-num { font-family: monospace; font-weight: 700; font-size: 12px; }
+
+/* Slot badges */
+.ct-slot-badge {
+  display: inline-block; font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 4px; white-space: nowrap;
+}
+.ct-slot-approved { background: rgba(34,197,94,0.1); color: #4ade80; }
+.ct-slot-throttled { background: rgba(245,158,11,0.1); color: #fcd34d; }
+.ct-slot-denied { background: rgba(239,68,68,0.1); color: #fca5a5; animation: pulseSlot 2s infinite; }
+@keyframes pulseSlot {
+  0%, 100% { box-shadow: none; }
+  50% { box-shadow: 0 0 8px rgba(239,68,68,0.4); }
+}
+
+.ct-hub-cell { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-size: 12px; }
+.ct-pressure-num { font-weight: 800; font-family: monospace; font-size: 11px; }
+
+.ct-vol-cell { font-family: monospace; font-weight: 600; }
+
+.ct-price { font-family: monospace; font-weight: 700; }
+.ct-surge-tag {
+  display: inline-block; margin-left: 6px; font-size: 9px; font-weight: 800;
+  padding: 1px 5px; border-radius: 3px;
+  background: rgba(245,158,11,0.15); color: #fcd34d;
+}
+
+.ct-risk-pill {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 800; padding: 3px 8px; border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+.ct-risk-low { background: rgba(34,197,94,0.1); color: #4ade80; }
+.ct-risk-medium { background: rgba(56,189,248,0.1); color: #7dd3fc; }
+.ct-risk-high { background: rgba(245,158,11,0.1); color: #fcd34d; }
+.ct-risk-critical { background: rgba(239,68,68,0.15); color: #fca5a5; }
+
+/* ── MDS Formula Bar ────────────────────────────────── */
+.ct-formula-bar {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05);
+  border-radius: 8px; padding: 10px 16px; margin-bottom: 20px;
+  font-size: 11px; color: #94a3b8; display: flex; align-items: center;
+  gap: 12px; flex-wrap: wrap;
+}
+.ct-formula-bar strong { color: #a5b4fc; }
+.ct-formula-tag {
+  background: rgba(99,102,241,0.1); color: #a5b4fc; border: 1px solid rgba(99,102,241,0.3);
+  padding: 2px 8px; border-radius: 4px; font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px; margin-left: auto;
+}
+
+/* ── Quality Breakdown Grid (inside merchant cards) ── */
+.ct-quality-grid {
+  display: flex; flex-direction: column; gap: 4px;
+  margin-bottom: 10px; padding: 8px; background: rgba(0,0,0,0.2);
+  border-radius: 6px;
+}
+.ct-q-cell {
+  display: flex; align-items: center; gap: 6px;
+}
+.ct-q-bar-bg {
+  width: 60px; height: 5px; background: rgba(255,255,255,0.05);
+  border-radius: 3px; overflow: hidden; flex-shrink: 0;
+}
+.ct-q-bar-fill {
+  height: 100%; border-radius: 3px; transition: width 0.5s ease, background 0.3s ease;
+}
+.ct-q-label {
+  font-size: 9px; color: #64748b; width: 65px; flex-shrink: 0;
+}
+.ct-q-val {
+  font-size: 10px; font-family: monospace; font-weight: 700; color: #cbd5e1;
+}
+
+/* ── Per-shipment MDS tag in table ───────────────── */
+.ct-shipment-mds-tag {
+  font-size: 9px; color: #64748b; margin-top: 2px;
+}
+.ct-shipment-mds-tag strong {
+  font-family: monospace;
+}
+

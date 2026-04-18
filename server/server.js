@@ -53,6 +53,49 @@ app.get("/api/simulate", (req, res) => {
   });
 });
 
+const PREDICTOR = path.join(__dirname, "../model/lstm_predictor.py");
+
+app.post("/api/predict_lstm", (req, res) => {
+  let output = "";
+  let errOutput = "";
+
+  // The Python API hook expects the JSON string as argv[1]
+  const py = spawn(PYTHON, [PREDICTOR, JSON.stringify(req.body)], { cwd: MODEL_DIR });
+
+  py.stdout.on("data", (data) => { output += data.toString(); });
+  py.stderr.on("data", (data) => { errOutput += data.toString(); });
+
+  py.on("close", (code) => {
+    try {
+      // The Python pipeline outputs generic logs before printing the exact JSON string.
+      // We seek the last valid JSON parseable block or trim it.
+      // Usually it's strictly JSON since we mute logs, but let's parse safe.
+      const resultObj = JSON.parse(output.trim());
+      res.json(resultObj);
+    } catch (e) {
+      console.error("LSTM Parse Error:", errOutput, output);
+      res.status(500).json({ error: "Failed to parse PyTorch output", raw: output, err: errOutput });
+    }
+  });
+
+  py.on("error", (err) => {
+    res.status(500).json({ error: "Failed to spawn PyTorch script process", details: err.message });
+  });
+});
+
+// Mock Admin Notification Relay
+app.post("/api/notify_admin", (req, res) => {
+  const { urgency, message, source } = req.body;
+  
+  // In a production system, this would integrate with AWS SNS, Twilio, SendGrid, or Slack API.
+  console.log(`\n[ADMIN NOTIFICATION SENT]`);
+  console.log(`Urgency: ${urgency}`);
+  console.log(`Source:  ${source}`);
+  console.log(`Message: ${message}\n`);
+  
+  res.json({ status: "success", delivered: true, details: "Admin notified via external channel." });
+});
+
 // Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 

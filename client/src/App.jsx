@@ -1,5 +1,9 @@
 import { useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
+import { toast } from 'react-hot-toast'
 import SmartTriage from './SmartTriage'
+import PreDepartureSimulator from './PreDepartureSimulator'
+import LstmPredictor from './LstmPredictor'
 import './index.css'
 
 const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
@@ -252,11 +256,34 @@ export default function App() {
         const e = await res.json()
         throw new Error(e.error || 'Server error')
       }
-      const json = await res.json()
-      setData(json)
-      setActiveId(json.hubs?.[0]?.id ?? null)
-    } catch (e) {
-      setError(e.message)
+      const result = await res.json()
+      setData(result)
+      setActiveId(result.hubs[0].id)
+      
+      // Global Notification Check
+      const criticalHubs = result.hubs.filter(h => h.critical_path && h.critical_path.length > 0);
+      if (criticalHubs.length > 0) {
+        const payloadMsg = `Simulation Complete: Critical gridlock in ${criticalHubs.map(h => h.name).join(', ')}`;
+        toast.error(payloadMsg, {
+          style: { background: '#1e293b', color: '#fca5a5', border: '1px solid #ef4444' }
+        });
+        
+        // Push notification to Admin
+        fetch(`${API}/api/notify_admin`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ urgency: 'CRITICAL', source: 'Simulation Engine', message: payloadMsg })
+        }).catch(e => console.error("Admin hook failed", e));
+
+      } else {
+        toast.success("Simulation Complete: Network operating normally.", {
+          style: { background: '#1e293b', color: '#4ade80', border: '1px solid #22c55e' }
+        });
+      }
+
+    } catch (err) {
+      setError(err.message)
+      toast.error(`Failed: ${err.message}`, { style: { background: '#1e293b', color: 'white' } })
     } finally {
       setLoading(false)
     }
@@ -276,7 +303,8 @@ export default function App() {
             {hubs.length || 5} active hub locations · Rule-Based Threshold Policy
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <Link to="/control-tower" className="ct-link-btn">Merchant Control Tower →</Link>
           <select
             id="days-select"
             className="days-select"
@@ -300,6 +328,19 @@ export default function App() {
       {/* Strategic Flow Visualization */}
       <div className="strategic-section">
         <SmartTriage hubData={activeHub} allHubs={hubs} />
+        
+        {/* Pre-Departure Routing Sandbox Simulator */}
+        <div style={{ marginTop: '40px' }}>
+          <h2 style={{ fontSize: '20px', color: '#e2e4f0', marginBottom: '10px' }}>Sandbox: Pre-Departure Routing Engine</h2>
+          <p style={{ color: '#8c90a3', marginBottom: '20px', fontSize: '13px' }}>
+            Test the pre-flight logic algorithm manually, or ping the live warehouse sensors to pull real-time occupancy.
+          </p>
+          <PreDepartureSimulator hubData={activeHub} />
+        </div>
+
+        {/* PyTorch AI Forecasting Integration */}
+        <LstmPredictor />
+
       </div>
 
       {/* Empty state */}

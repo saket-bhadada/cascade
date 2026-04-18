@@ -1,0 +1,218 @@
+.mg-container {
+  background: #0d1117;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 16px;
+  padding: 24px;
+  margin: 40px 0;
+  color: #e2e4f0;
+  font-family: system-ui, -apple-system, sans-serif;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+.mg-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 16px;
+}
+.mg-header h3 { margin: 0; font-size: 20px; color: #38bdf8; }
+.mg-badge {
+  background: rgba(56,189,248,0.12); color: #7dd3fc; border: 1px solid #38bdf8;
+  padding: 3px 10px; border-radius: 4px; font-size: 11px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+
+/* ── Three-Panel Layout ─────────────────────────────── */
+.mg-layout { display: flex; gap: 20px; flex-wrap: wrap; }
+
+.mg-panel {
+  background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04);
+  border-radius: 12px; padding: 20px;
+}
+.mg-panel-title {
+  margin: 0 0 16px; font-size: 12px; text-transform: uppercase;
+  letter-spacing: 1.2px; color: #94a3b8;
+}
+
+.mg-profile { width: 240px; display: flex; flex-direction: column; }
+.mg-hub { flex: 1; min-width: 320px; display: flex; flex-direction: column; align-items: center; }
+.mg-console { width: 280px; display: flex; flex-direction: column; }
+
+/* ── Merchant Select ─────────────────────────────────── */
+.mg-select-wrap { margin-bottom: 16px; }
+.mg-select {
+  width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+  color: white; padding: 10px; border-radius: 6px; font-size: 13px; cursor: pointer;
+}
+.mg-select option { background: #1e293b; }
+
+/* ── Profile Card ────────────────────────────────────── */
+.mg-profile-card {
+  flex: 1; border-left: 3px solid; border-radius: 8px;
+  background: rgba(0,0,0,0.25); padding: 16px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.mg-profile-icon { font-size: 36px; }
+.mg-profile-name { font-weight: 700; font-size: 15px; }
+.mg-profile-id { font-family: monospace; font-size: 11px; color: #64748b; }
+
+/* MDS Ring */
+.mg-mds-ring { position: relative; width: 100px; height: 100px; margin: 8px 0; }
+.mg-mds-svg { width: 100%; height: 100%; }
+.mg-mds-value {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  font-size: 28px; font-weight: 900; font-family: monospace;
+  text-shadow: 0 0 10px rgba(255,255,255,0.2);
+}
+.mg-mds-label {
+  position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%);
+  font-size: 9px; text-transform: uppercase; letter-spacing: 2px; color: #94a3b8;
+}
+
+.mg-profile-tier { font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; }
+.mg-profile-history { font-size: 11px; color: #64748b; }
+
+.mg-improve-btn {
+  margin-top: auto; width: 100%; background: linear-gradient(135deg, #22c55e, #16a34a);
+  color: white; border: none; padding: 10px; border-radius: 6px;
+  font-weight: 700; cursor: pointer; font-size: 12px;
+  box-shadow: 0 4px 15px rgba(34,197,94,0.3); transition: all 0.2s;
+}
+.mg-improve-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,0.5); }
+
+/* ── Gauge ────────────────────────────────────────────── */
+.mg-gauge-wrap { position: relative; width: 220px; height: 130px; margin-bottom: 12px; }
+.mg-gauge-svg { width: 100%; height: 100%; }
+.mg-gauge-pct {
+  position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+  font-size: 32px; font-weight: 900; font-family: monospace;
+  text-shadow: 0 0 15px rgba(255,255,255,0.2);
+}
+.mg-gauge-label {
+  text-align: center; font-size: 11px; color: #94a3b8;
+  text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+}
+
+/* ── Status Badge ────────────────────────────────────── */
+.mg-status-badge {
+  padding: 10px 16px; border-radius: 8px; font-size: 12px; font-weight: 700;
+  text-align: center; width: 100%; max-width: 400px; margin-bottom: 20px;
+  border: 1px solid transparent;
+}
+.mg-status-guaranteed { background: rgba(34,197,94,0.1); color: #4ade80; border-color: #22c55e; }
+.mg-status-throttled { background: rgba(245,158,11,0.1); color: #fcd34d; border-color: #f59e0b; }
+.mg-status-denied {
+  background: rgba(239,68,68,0.15); color: #fca5a5; border-color: #ef4444;
+  animation: pulseGate 1.5s ease infinite;
+}
+@keyframes pulseGate {
+  0%, 100% { box-shadow: 0 0 0 rgba(239,68,68,0); }
+  50% { box-shadow: 0 0 20px rgba(239,68,68,0.3); }
+}
+
+/* ── Hub Pressure Bar ────────────────────────────────── */
+.mg-pressure-section { width: 100%; max-width: 400px; margin-bottom: 20px; }
+.mg-pressure-label { font-size: 12px; color: #cbd5e1; margin-bottom: 8px; }
+.mg-pressure-bar-bg {
+  height: 12px; background: rgba(255,255,255,0.05); border-radius: 6px;
+  position: relative; overflow: visible;
+}
+.mg-pressure-bar-fill { height: 100%; border-radius: 6px; }
+.mg-pressure-threshold {
+  position: absolute; top: -4px; bottom: -4px; width: 2px;
+  background: #f59e0b;
+}
+.mg-pressure-critical { background: #ef4444; }
+.mg-pressure-ticks {
+  display: flex; justify-content: space-between; position: relative;
+  font-size: 9px; color: #64748b; margin-top: 4px;
+}
+.mg-pressure-ticks span { position: relative; }
+
+/* ── Volume Split Bar ────────────────────────────────── */
+.mg-vol-split { width: 100%; max-width: 400px; }
+.mg-vol-bar {
+  display: flex; height: 28px; border-radius: 6px; overflow: hidden;
+  background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+}
+.mg-vol-alloc {
+  background: #22c55e; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #052e16;
+  transition: width 0.4s ease;
+}
+.mg-vol-divert {
+  background: #ef4444; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700; color: #450a0a;
+  transition: width 0.4s ease;
+}
+.mg-vol-legend {
+  display: flex; gap: 16px; margin-top: 8px; font-size: 10px; color: #94a3b8;
+}
+.mg-vol-legend i {
+  display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 4px;
+}
+
+/* ── Console Inputs ──────────────────────────────────── */
+.mg-input-group { margin-bottom: 16px; }
+.mg-input-group label {
+  display: flex; justify-content: space-between; font-size: 11px; color: #a5b4fc;
+  font-weight: 600; margin-bottom: 6px;
+}
+.mg-input-group label strong { color: white; }
+.mg-input-group input[type="range"] { width: 100%; accent-color: #38bdf8; }
+.mg-range-labels { display: flex; justify-content: space-between; font-size: 9px; color: #475569; }
+
+.mg-dispatch-btn {
+  width: 100%; background: linear-gradient(135deg, #38bdf8, #6366f1);
+  color: white; border: none; padding: 12px; border-radius: 8px;
+  font-weight: 800; font-size: 13px; cursor: pointer;
+  box-shadow: 0 4px 15px rgba(56,189,248,0.3); transition: all 0.2s;
+  margin-bottom: 20px;
+}
+.mg-dispatch-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(56,189,248,0.5); }
+
+/* ── Financials ──────────────────────────────────────── */
+.mg-financials {
+  background: rgba(0,0,0,0.3); padding: 14px; border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.04); margin-bottom: 16px;
+}
+.mg-financials h5 {
+  margin: 0 0 12px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: #94a3b8;
+}
+.mg-fin-row {
+  display: flex; justify-content: space-between; font-size: 12px;
+  padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.mg-fin-row.highlight { background: rgba(255,255,255,0.02); padding: 6px 4px; border-radius: 4px; }
+.mg-fin-row.penalty { color: #fca5a5; }
+.mg-fin-total {
+  display: flex; justify-content: space-between; font-size: 14px; font-weight: 800;
+  padding: 10px 0 0; margin-top: 6px; border-top: 2px solid rgba(255,255,255,0.08);
+}
+
+.text-amber { color: #fcd34d; }
+.text-green { color: #4ade80; }
+.text-red { color: #fca5a5; }
+.text-amber small { color: #92400e; font-weight: 400; font-size: 10px; }
+
+/* ── Gate Log ────────────────────────────────────────── */
+.mg-log { margin-top: 4px; }
+.mg-log h5 {
+  margin: 0 0 8px; font-size: 11px; text-transform: uppercase;
+  letter-spacing: 1px; color: #94a3b8;
+}
+.mg-log-entry {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 11px; padding: 6px 8px; border-radius: 4px; margin-bottom: 4px;
+  background: rgba(0,0,0,0.2); border-left: 3px solid transparent;
+}
+.mg-log-guaranteed { border-left-color: #22c55e; }
+.mg-log-throttled { border-left-color: #f59e0b; }
+.mg-log-denied { border-left-color: #ef4444; }
+.mg-log-time { color: #64748b; font-family: monospace; }
+.mg-log-status { font-weight: 700; font-size: 10px; letter-spacing: 0.5px; }
+
+/* ── Responsive ──────────────────────────────────────── */
+@media (max-width: 900px) {
+  .mg-layout { flex-direction: column; }
+  .mg-profile, .mg-console { width: 100%; }
+}
