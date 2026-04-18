@@ -18,73 +18,42 @@ app.use(express.json());
 const CLIENT_BUILD_PATH = path.join(__dirname, "../client/dist");
 app.use(express.static(CLIENT_BUILD_PATH));
 
-// Path to the venv python and the model folder
-const PYTHON    = path.resolve(__dirname, process.env.PYTHON_PATH ?? "../model/venv/Scripts/python.exe");
-const RUNNER    = path.join(__dirname, "../model/api_runner.py");
-const MODEL_DIR = path.join(__dirname, "../model");
+// Setup for Hugging Face API
+const HF_MODEL_URL = process.env.HF_MODEL_URL || 'http://localhost:7860';
 
 // GET /api/simulate?days=10
-app.get("/api/simulate", (req, res) => {
+app.get("/api/simulate", async (req, res) => {
   const days = parseInt(req.query.days) || 10;
-
   if (days < 1 || days > 30) {
     return res.status(400).json({ error: "days must be between 1 and 30" });
   }
 
-  let output = "";
-  let errOutput = "";
-
-  const py = spawn(PYTHON, [RUNNER, String(days)], { cwd: MODEL_DIR });
-
-  py.stdout.on("data", (data) => { output += data.toString(); });
-  py.stderr.on("data", (data) => { errOutput += data.toString(); });
-
-  py.on("close", (code) => {
-    if (code !== 0) {
-      console.error("Python error:", errOutput);
-      return res.status(500).json({ error: "Simulation failed", details: errOutput });
-    }
-    try {
-      const result = JSON.parse(output);
-      res.json(result);
-    } catch (e) {
-      res.status(500).json({ error: "Failed to parse simulation output", raw: output });
-    }
-  });
-
-  py.on("error", (err) => {
-    res.status(500).json({ error: "Failed to start Python process", details: err.message });
-  });
+  try {
+    const response = await fetch(`${HF_MODEL_URL}/api/simulate?days=${days}`);
+    if (!response.ok) throw new Error(`HF API responded with ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("Simulation proxy error:", err.message);
+    res.status(500).json({ error: "Failed to fetch from Hugging Face model API", details: err.message });
+  }
 });
 
-const PREDICTOR = path.join(__dirname, "../model/lstm_predictor.py");
-
-app.post("/api/predict_lstm", (req, res) => {
-  let output = "";
-  let errOutput = "";
-
-  // The Python API hook expects the JSON string as argv[1]
-  const py = spawn(PYTHON, [PREDICTOR, JSON.stringify(req.body)], { cwd: MODEL_DIR });
-
-  py.stdout.on("data", (data) => { output += data.toString(); });
-  py.stderr.on("data", (data) => { errOutput += data.toString(); });
-
-  py.on("close", (code) => {
-    try {
-      // The Python pipeline outputs generic logs before printing the exact JSON string.
-      // We seek the last valid JSON parseable block or trim it.
-      // Usually it's strictly JSON since we mute logs, but let's parse safe.
-      const resultObj = JSON.parse(output.trim());
-      res.json(resultObj);
-    } catch (e) {
-      console.error("LSTM Parse Error:", errOutput, output);
-      res.status(500).json({ error: "Failed to parse PyTorch output", raw: output, err: errOutput });
-    }
-  });
-
-  py.on("error", (err) => {
-    res.status(500).json({ error: "Failed to spawn PyTorch script process", details: err.message });
-  });
+app.post("/api/predict_lstm", async (req, res) => {
+  try {
+    const response = await fetch(`${HF_MODEL_URL}/api/predict_lstm`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req.body)
+    });
+    
+    if (!response.ok) throw new Error(`HF API responded with ${response.status}`);
+    const data = await response.json();
+    res.json(data);
+  } catch (err) {
+    console.error("LSTM proxy error:", err.message);
+    res.status(500).json({ error: "Failed to fetch from Hugging Face LSTM API", details: err.message });
+  }
 });
 
 // Mock Admin Notification Relay
