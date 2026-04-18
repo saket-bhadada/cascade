@@ -103,8 +103,12 @@ app.post("/api/notify_admin", (req, res) => {
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
 
 // Catch-all route to serve the React index.html for client-side routing
-app.get("*", (req, res) => {
-  res.sendFile(path.join(CLIENT_BUILD_PATH, "index.html"));
+app.use((req, res, next) => {
+  if (req.method === 'GET' && !req.path.startsWith('/api/')) {
+    res.sendFile(path.join(CLIENT_BUILD_PATH, "index.html"));
+  } else {
+    next();
+  }
 });
 
 app.listen(PORT, () => {
