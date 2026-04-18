@@ -14,6 +14,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
+// Serve static React files in production
+const CLIENT_BUILD_PATH = path.join(__dirname, "../client/dist");
+app.use(express.static(CLIENT_BUILD_PATH));
+
 // Path to the venv python and the model folder
 const PYTHON    = path.resolve(__dirname, process.env.PYTHON_PATH ?? "../model/venv/Scripts/python.exe");
 const RUNNER    = path.join(__dirname, "../model/api_runner.py");
@@ -96,8 +100,12 @@ app.post("/api/notify_admin", (req, res) => {
   res.json({ status: "success", delivered: true, details: "Admin notified via external channel." });
 });
 
-// Health check
 app.get("/api/health", (_req, res) => res.json({ status: "ok" }));
+
+// Catch-all route to serve the React index.html for client-side routing
+app.get("*", (req, res) => {
+  res.sendFile(path.join(CLIENT_BUILD_PATH, "index.html"));
+});
 
 app.listen(PORT, () => {
   console.log(`Hub Service API running at http://localhost:${PORT}`);

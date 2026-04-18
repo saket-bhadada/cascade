@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import toast from 'react-hot-toast';
 import './PreDepartureSimulator.css';
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
 
 const PreDepartureSimulator = ({ hubData }) => {
   const [payload, setPayload] = useState(15);

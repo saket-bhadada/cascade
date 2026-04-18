@@ -6,7 +6,7 @@ import PreDepartureSimulator from './PreDepartureSimulator'
 import LstmPredictor from './LstmPredictor'
 import './index.css'
 
-const API = import.meta.env.VITE_API_URL || 'http://localhost:3001'
+const API = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || 'http://localhost:3001')
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 function tierCls(tier) {
