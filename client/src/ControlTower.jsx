@@ -43,9 +43,9 @@ function calcMds(quality) {
 }
 
 function getTier(mds) {
-  if (mds >= 80) return 'platinum';
-  if (mds >= 60) return 'gold';
-  return 'restricted';
+  if (mds >= 80) return 'premium';    // 80-100: Full Premium, base price
+  if (mds >= 60) return 'partial';    // 60-79:  Partial access, +10-20%
+  return 'standard';                  // <60:    Standard only, +25-40%
 }
 
 /* ── Merchant Profiles (seed quality) ────────────── */
@@ -60,9 +60,9 @@ const INITIAL_MERCHANTS = [
 const HUBS = ['Delhi Hub', 'Mumbai Hub', 'Kolkata Hub', 'Bangalore Hub', 'Chennai Hub'];
 
 const SLA_TIERS = {
-  platinum:   { premium: true, standard: true, surgeMultiplier: 1.0,  slotPriority: 'First-Class' },
-  gold:       { premium: true, standard: true, surgeMultiplier: 1.15, slotPriority: 'Priority' },
-  restricted: { premium: false, standard: true, surgeMultiplier: 1.5, slotPriority: 'Best-Effort' },
+  premium:  { premium: true,  standard: true,  surgeMultiplier: 1.0,  surgeLabel: 'Base Price',   slotPriority: 'First-Class' },
+  partial:  { premium: true,  standard: true,  surgeMultiplier: 1.15, surgeLabel: '+10-20%',      slotPriority: 'Priority'    },
+  standard: { premium: false, standard: true,  surgeMultiplier: 1.32, surgeLabel: '+25-40%',      slotPriority: 'Best-Effort' },
 };
 
 /* ── Hub Pressure Simulation ──────────────────────── */
@@ -139,33 +139,62 @@ function ShipmentRow({ shipment, pressures, merchantState }) {
   const sla = SLA_TIERS[tier];
   const hubPressure = pressures[shipment.hub] || 50;
 
+  // Dynamic surge: scale within the tier's range based on where MDS falls
+  let dynamicSurge = sla.surgeMultiplier;
+  if (tier === 'partial') {
+    // MDS 60-79 maps to 1.10x - 1.20x
+    dynamicSurge = 1.10 + ((79 - Math.min(mds, 79)) / 19) * 0.10;
+  } else if (tier === 'standard') {
+    // MDS 0-59 maps to 1.25x - 1.40x
+    dynamicSurge = 1.25 + ((59 - Math.min(mds, 59)) / 59) * 0.15;
+  }
+
   let slotStatus, riskLevel, priceImpact, gateDecision;
   const baseCost = shipment.volume * 12;
 
-  if (mds >= 75) {
-    slotStatus = shipment.slaPremium ? 'Premium Slot Guaranteed' : 'Standard Slot Guaranteed';
+  if (mds >= 80) {
+    // Full Premium tier — all slots open, base price
+    slotStatus = shipment.slaPremium ? 'Full Premium Slot' : 'Regular Slot Guaranteed';
     riskLevel = 'low';
-    priceImpact = baseCost * sla.surgeMultiplier;
+    priceImpact = baseCost * dynamicSurge;
     gateDecision = 'approved';
-  } else if (hubPressure > 85) {
-    slotStatus = 'Hard Gate -- Slot Denied';
-    riskLevel = 'critical';
-    priceImpact = baseCost * 1.5 + shipment.volume * 8;
-    gateDecision = 'denied';
-  } else if (hubPressure > 70) {
-    slotStatus = 'Throttled -- Partial Allocation';
-    riskLevel = 'high';
-    const capFactor = Math.max(0.3, 1 - ((hubPressure - 70) / 30) * 0.7);
-    priceImpact = baseCost * sla.surgeMultiplier + (shipment.volume * (1 - capFactor)) * 8;
-    gateDecision = 'throttled';
-  } else {
-    slotStatus = shipment.slaPremium ? 'Premium (Restricted)' : 'Standard Slot Available';
-    riskLevel = 'medium';
-    priceImpact = baseCost * sla.surgeMultiplier;
-    gateDecision = shipment.slaPremium && !sla.premium ? 'denied' : 'approved';
-    if (gateDecision === 'denied') {
-      slotStatus = 'Premium Access Denied -- MDS too low';
+  } else if (mds >= 60) {
+    // Partial tier — premium allowed but with surcharge
+    if (hubPressure > 85) {
+      slotStatus = 'Throttled — High Hub Pressure';
       riskLevel = 'high';
+      const capFactor = Math.max(0.4, 1 - ((hubPressure - 70) / 30) * 0.6);
+      priceImpact = baseCost * dynamicSurge + (shipment.volume * (1 - capFactor)) * 8;
+      gateDecision = 'throttled';
+    } else {
+      slotStatus = shipment.slaPremium ? 'Premium (Partial Access +10-20%)' : 'Regular Slot (+10-20%)';
+      riskLevel = 'medium';
+      priceImpact = baseCost * dynamicSurge;
+      gateDecision = 'approved';
+    }
+  } else {
+    // Standard-only tier — no premium, +25-40% surcharge
+    if (hubPressure > 85) {
+      slotStatus = 'Hard Gate — MDS too low for peak slot';
+      riskLevel = 'critical';
+      priceImpact = baseCost * dynamicSurge + shipment.volume * 8;
+      gateDecision = 'denied';
+    } else if (hubPressure > 70) {
+      slotStatus = 'Throttled — Diversion Required (+25-40%)';
+      riskLevel = 'high';
+      const capFactor = Math.max(0.3, 1 - ((hubPressure - 70) / 30) * 0.7);
+      priceImpact = baseCost * dynamicSurge + (shipment.volume * (1 - capFactor)) * 8;
+      gateDecision = 'throttled';
+    } else if (shipment.slaPremium) {
+      slotStatus = 'Premium Denied — MDS below 60';
+      riskLevel = 'high';
+      priceImpact = baseCost * dynamicSurge;
+      gateDecision = 'denied';
+    } else {
+      slotStatus = 'Regular Slot Only (+25-40%)';
+      riskLevel = 'medium';
+      priceImpact = baseCost * dynamicSurge;
+      gateDecision = 'approved';
     }
   }
 
