@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import './ControlTower.css';
 
-const API = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || 'http://localhost:3001');
+const API = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 /* ══════════════════════════════════════════════════════
    MDS CALCULATION ENGINE
